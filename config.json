@@ -1,0 +1,4 @@
+{
+  "ConnectionString": "Server=localhost;Database=DriveSafe;Trusted_Connection=True;"
+
+}
