@@ -65,14 +65,18 @@ namespace ConsoleApp3
             using (simTimer = new SectionTimer($"Simulating {simCount} updates using {threadCount} threads"))
             {
                 var ctr = 0;
-                await ForEachAsync(SimulateLocationUpdates(vehicles, bus).Take(simCount), threadCount, async vu =>
-                {
-                    var ii = Interlocked.Increment(ref ctr);
-                    if (ii % 5000 == 0)
-                        Debug.WriteLine($"Processed {ii} ({(100 * ii/ simCount):F0}%) ...");
 
-                    await UpdateVehicleLocation(vu);
-                });
+                await ForEachAsync(
+                    SimulateLocationUpdates(vehicles, bus).Take(simCount),
+                    threadCount, 
+                    async vu =>
+                    {
+                        var ii = Interlocked.Increment(ref ctr);
+                        if (ii % 5000 == 0)
+                            Debug.WriteLine($"Processed {ii} ({(100 * ii/ simCount):F0}%) ...");
+
+                        await UpdateVehicleLocation(vu).ConfigureAwait(false);
+                    });
             }
             Debug.WriteLine($"Took {simTimer.ElapsedMilliseconds} ms for {simCount} updates or {1.0 * simTimer.ElapsedMilliseconds / simCount} ms per update");
         }
@@ -152,9 +156,9 @@ namespace ConsoleApp3
             await using var conn = new SqlConnection(_conStr);
             await conn.OpenAsync();
 
-            await using (var cmdUpdate = conn.CreateCommand())
+            await using (var cmdCurLoc = conn.CreateCommand())
             {
-                cmdUpdate.CommandText =
+                cmdCurLoc.CommandText =
                     "update vl " +
                     "set LastUpdated=@timestamp, Latitude=@latitude, Longitude=@longitude, Direction=@direction, Speed=@speed " +
                     "from VehicleLocation vl inner " +
@@ -166,14 +170,32 @@ namespace ConsoleApp3
                     "from Vehicle v left outer join VehicleLocation vl on vl.VehicleId = v.VehicleId " +
                     "where v.VehicleNo = @VehicleNo and vl.VehicleId is null";
 
-                cmdUpdate.Parameters.AddWithValue("@VehicleNo", vlu.VehicleNo);
-                cmdUpdate.Parameters.AddWithValue("@timestamp", vlu.Timestamp);
-                cmdUpdate.Parameters.AddWithValue("@latitude", vlu.Lat);
-                cmdUpdate.Parameters.AddWithValue("@longitude", vlu.Lng);
-                cmdUpdate.Parameters.AddWithValue("@direction", vlu.Dir);
-                cmdUpdate.Parameters.AddWithValue("@speed", vlu.Speed);
+                cmdCurLoc.Parameters.AddWithValue("@VehicleNo", vlu.VehicleNo);
+                cmdCurLoc.Parameters.AddWithValue("@timestamp", vlu.Timestamp);
+                cmdCurLoc.Parameters.AddWithValue("@latitude", vlu.Lat);
+                cmdCurLoc.Parameters.AddWithValue("@longitude", vlu.Lng);
+                cmdCurLoc.Parameters.AddWithValue("@direction", vlu.Dir);
+                cmdCurLoc.Parameters.AddWithValue("@speed", vlu.Speed);
 
-                await cmdUpdate.ExecuteNonQueryAsync();
+                await cmdCurLoc.ExecuteNonQueryAsync();
+            }
+
+            await using (var cmdTrace = conn.CreateCommand())
+            {
+                cmdTrace.CommandText = 
+                    "insert into VehicleTrace(VehicleId, Timestamp, Latitude, Longitude, Direction, Speed) " +
+                    "select v.VehicleId, @timestamp, @latitude, @longitude, @direction, @speed " +
+                    "from Vehicle v " +
+                    "where v.VehicleNo = @VehicleNo"; 
+ 
+                cmdTrace.Parameters.AddWithValue("@VehicleNo", vlu.VehicleNo); 
+                cmdTrace.Parameters.AddWithValue("@timestamp", vlu.Timestamp); 
+                cmdTrace.Parameters.AddWithValue("@latitude", vlu.Lat); 
+                cmdTrace.Parameters.AddWithValue("@longitude", vlu.Lng);
+                cmdTrace.Parameters.AddWithValue("@direction", vlu.Dir);
+                cmdTrace.Parameters.AddWithValue("@speed", vlu.Speed);
+
+                await cmdTrace.ExecuteNonQueryAsync();
             }
 
             await conn.CloseAsync();

@@ -1,6 +1,9 @@
 if exists(select * from sys.tables where name = 'VehicleNotification') 
 	drop table VehicleNotification
 
+if exists(select * from sys.tables where name = 'VehicleTrace') 
+	drop table VehicleTrace
+
 if exists(select * from sys.tables where name = 'VehicleLocation') 
 	drop table VehicleLocation
 
@@ -76,6 +79,17 @@ create table VehicleLocation
 	Longitude float null,
 	Direction smallint null,
 	Speed smallint null
+);
+
+create table VehicleTrace
+(
+	VehicleTrace int not null identity(1,1) primary key,
+	VehicleId int not null foreign key references Vehicle(VehicleId),
+	Timestamp datetimeoffset(2) not null,
+	Latitude float null,
+	Longitude float null,
+	Direction smallint null,
+	Speed smallint null,
 );
 
 create table VehicleNotification
