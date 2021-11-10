@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace ConsoleApp3
 {
@@ -22,17 +23,23 @@ namespace ConsoleApp3
                 .AddJsonFile("config.json", optional: true)
                 .Build();
 
-            var services = new ServiceCollection();
-            services.AddSingleton<IConfiguration>(config);
-            foreach (var ct in cmds.Values)
-                services.AddTransient(ct);
-            var sp = services.BuildServiceProvider();
+            var sp = ConfigServices(cmds.Values, config);
 
             if (cmds.TryGetValue(args[0], out var cmdType))
             {
                 var cmd = (ICmd)sp.GetService(cmdType);
                 await cmd.Run(args.Skip(1).ToList());
             }
+        }
+
+        private static IServiceProvider ConfigServices(IEnumerable<Type> cmdTypes, IConfigurationRoot config)
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(config);
+            foreach (var ct in cmdTypes)
+                services.AddTransient(ct);
+            var sp = services.BuildServiceProvider();
+            return sp;
         }
     }
 }

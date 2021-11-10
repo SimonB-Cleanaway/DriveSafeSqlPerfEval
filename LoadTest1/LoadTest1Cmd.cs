@@ -10,22 +10,17 @@ using Microsoft.Extensions.Configuration;
 
 namespace ConsoleApp3
 {
+
     public class LoadTest1Cmd : ICmd
     {
         private readonly string _conStr;
+        private readonly DataSimulator _dataSimulator = new DataSimulator();
 
         public LoadTest1Cmd(IConfiguration config)
         {
             _conStr = config["ConnectionString"];
         }
 
-        private readonly Random _rnd = new ();
-
-        public record Vehicle(int VehicleId, string VehicleNo, int BusinessUnitId);
-
-        public record BusinessUnit(int BusUnitId, string Code, string Name);
-
-        public record LocationUpdate(string VehicleNo, string BusUnitCode, DateTimeOffset Timestamp, float Lat, float Lng, int Speed, int Dir);
 
         public async Task Run(IReadOnlyList<string> args)
         {
@@ -67,7 +62,7 @@ namespace ConsoleApp3
                 var ctr = 0;
 
                 await ForEachAsync(
-                    SimulateLocationUpdates(vehicles, bus).Take(simCount),
+                    _dataSimulator.SimulateLocationUpdates(vehicles, bus).Take(simCount),
                     threadCount, 
                     async vu =>
                     {
@@ -101,7 +96,7 @@ namespace ConsoleApp3
 
             while (vehicles.Count < requiredVehicleCount)
             {
-                var v = new Vehicle(0, RandomRego(rnd), bus[rnd.Next(bus.Count)].BusUnitId);
+                var v = new Vehicle(0, _dataSimulator.RandomRego(), bus[rnd.Next(bus.Count)].BusUnitId);
 
                 if (!vehicles.ContainsKey(v.VehicleNo))
                     vehicles.Add(v.VehicleNo, v);
@@ -112,46 +107,7 @@ namespace ConsoleApp3
             return vehicles.Values.ToList();
         }
 
-        public static string RandomRego(Random rnd) => new (new[]
-        {
-            (char)('A' + rnd.Next(26)),
-            (char)('A' + rnd.Next(26)),
-            (char)('A' + rnd.Next(26)),
-            (char)('0' + rnd.Next(10)),
-            (char)('0' + rnd.Next(10)),
-            (char)('0' + rnd.Next(10)),
-        });
-
-        private IEnumerable<LocationUpdate> SimulateLocationUpdates(IReadOnlyList<Vehicle> vehicles, IReadOnlyList<BusinessUnit> bus)
-        {
-
-            while (true)
-            {
-                var v = vehicles[_rnd.Next(vehicles.Count)];
-                var bu = bus.FirstOrDefault(x => x.BusUnitId == v.BusinessUnitId)?.Code;
-
-                yield return SimulateLocationUpdate(v, bu);
-            }
-        }
-
-        private LocationUpdate SimulateLocationUpdate(Vehicle v, string bu)
-        {
-            const float maxLat = -11.45397008875731f;
-            const float maxLng = 153.58748984080026f;
-            const float minLat = -43.56502683925548f;
-            const float minLng = 113.31736337056127f;
-
-            return new LocationUpdate(
-                v.VehicleNo,
-                bu,
-                DateTimeOffset.Now.AddSeconds(_rnd.Next(60) - 120),
-                (float)(minLat + (_rnd.NextDouble() * (maxLat - minLat))),
-                (float)(minLng + (_rnd.NextDouble() * (maxLng - minLng))),
-                _rnd.Next(120),
-                _rnd.Next(360));
-        }
-
-        public async Task UpdateVehicleLocation(LocationUpdate vlu)
+         public async Task UpdateVehicleLocation(ValidationRequest vlu)
         {
             await using var conn = new SqlConnection(_conStr);
             await conn.OpenAsync();
@@ -170,7 +126,7 @@ namespace ConsoleApp3
                     "from Vehicle v left outer join VehicleLocation vl on vl.VehicleId = v.VehicleId " +
                     "where v.VehicleNo = @VehicleNo and vl.VehicleId is null";
 
-                cmdCurLoc.Parameters.AddWithValue("@VehicleNo", vlu.VehicleNo);
+                cmdCurLoc.Parameters.AddWithValue("@VehicleNo", vlu.Id);
                 cmdCurLoc.Parameters.AddWithValue("@timestamp", vlu.Timestamp);
                 cmdCurLoc.Parameters.AddWithValue("@latitude", vlu.Lat);
                 cmdCurLoc.Parameters.AddWithValue("@longitude", vlu.Lng);
@@ -188,7 +144,7 @@ namespace ConsoleApp3
                     "from Vehicle v " +
                     "where v.VehicleNo = @VehicleNo"; 
  
-                cmdTrace.Parameters.AddWithValue("@VehicleNo", vlu.VehicleNo); 
+                cmdTrace.Parameters.AddWithValue("@VehicleNo", vlu.Id); 
                 cmdTrace.Parameters.AddWithValue("@timestamp", vlu.Timestamp); 
                 cmdTrace.Parameters.AddWithValue("@latitude", vlu.Lat); 
                 cmdTrace.Parameters.AddWithValue("@longitude", vlu.Lng);

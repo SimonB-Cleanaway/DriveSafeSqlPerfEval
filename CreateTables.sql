@@ -19,8 +19,8 @@ if exists(select * from sys.tables where name = 'BusinessUnit')
 if exists(select * from sys.tables where name = 'Equipment') 
 	drop table Equipment
 
-if exists(select * from sys.tables where name = 'NotificationRule') 
-	drop table NotificationRule
+if exists(select * from sys.tables where name = 'ValidationRule') 
+	drop table ValidationRule
 
 if exists(select * from sys.tables where name = 'NotificationLevel') 
 	drop table NotificationLevel
@@ -34,9 +34,9 @@ create table NotificationLevel
 	Name nvarchar(80) not null unique,
 )
 
-create table NotificationRule
+create table ValidationRule
 (
-	NotificationRuleId int not null identity(1,1) primary key,
+	ValidationRuleId int not null identity(1,1) primary key,
 	Code nvarchar(20) not null unique,
 	Name nvarchar(80) not null unique,
 	DefaultNotificationLevelId int not null foreign key references NotificationLevel(NotificationLevelId)
@@ -96,7 +96,7 @@ create table VehicleNotification
 (
 	VehicleNotificationId int not null identity(1,1) primary key,
 	VehicleId int not null foreign key references Vehicle(VehicleId),
-	NotificationRuleId int not null foreign key references NotificationRule(NotificationRuleId),
+	ValidationRuleId int not null foreign key references ValidationRule(ValidationRuleId),
 	NotificationLevelId int not null foreign key references NotificationLevel(NotificationLevelId),
 	Message nvarchar(120) null,
 	CreateDate datetimeoffset not null,
