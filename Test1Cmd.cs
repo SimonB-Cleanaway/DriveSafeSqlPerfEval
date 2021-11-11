@@ -42,11 +42,11 @@ namespace ConsoleApp3
                     rdr.GetString(idx++),
                     rdr.GetString(idx++),
                     rdr.GetString(idx++),
-                    rdr.GetNullableDateTimeOffset(ref idx),
-                    rdr.GetNullableDouble(ref idx),
-                    rdr.GetNullableDouble(ref idx),
-                    rdr.GetNullableShort(ref idx),
-                    rdr.GetNullableShort(ref idx));
+                    rdr.GetNullableDateTimeOffset(idx++),
+                    rdr.GetNullableDouble(idx++),
+                    rdr.GetNullableDouble(idx++),
+                    rdr.GetNullableShort(idx++),
+                    rdr.GetNullableShort(idx++));
             });
     }
 }

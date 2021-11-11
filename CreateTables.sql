@@ -100,7 +100,7 @@ create table VehicleNotification
 	NotificationLevelId int not null foreign key references NotificationLevel(NotificationLevelId),
 	Message nvarchar(120) null,
 	CreateDate datetimeoffset not null,
-	ExpireDate datetimeoffset null,
+	ExpiryDate datetimeoffset null,
 	Active bit not null default 1
 )
 

@@ -6,7 +6,7 @@ namespace ConsoleApp3
     {
         string VehicleId { get; }
         string RuleCode { get; }
-        NotificationLevel? Level { get; }
+        NotLevel? Level { get; }
         string Message { get; }
         TimeSpan? RuleErrorRetention { get; }
     }

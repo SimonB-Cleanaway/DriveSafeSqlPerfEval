@@ -21,20 +21,30 @@ namespace ConsoleApp3
             await using var conn = new SqlConnection(connStr);
 
             await conn.OpenAsync();
-
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = query;
-            bind?.Invoke(cmd);
-
-            var rdr = await cmd.ExecuteReaderAsync();
-            while (await rdr.ReadAsync()) yield return map(rdr);
+           
+            await foreach(var rec in QueryRecords(conn, query, map, bind))
+                yield return rec;
 
             await conn.CloseAsync();
         }
 
-        public static DateTimeOffset? GetNullableDateTimeOffset(this SqlDataReader rdr, ref int idx) => rdr.IsDBNull(idx) ? null : rdr.GetDateTimeOffset(idx++);
-        public static double? GetNullableDouble(this IDataReader rdr, ref int idx) => rdr.IsDBNull(idx) ? null : rdr.GetDouble(idx++);
-        public static short? GetNullableShort(this IDataReader rdr, ref int idx) => rdr.IsDBNull(idx) ? null : rdr.GetInt16(idx++);
+        public static async IAsyncEnumerable<T> QueryRecords<T>(
+            SqlConnection conn,
+            string query,
+            Func<SqlDataReader, T> map,
+            Action<SqlCommand> bind = null)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = query;
+            bind?.Invoke(cmd);
+
+            using var rdr = await cmd.ExecuteReaderAsync();
+            while (await rdr.ReadAsync()) yield return map(rdr);
+        }
+
+        public static DateTimeOffset? GetNullableDateTimeOffset(this SqlDataReader rdr, int idx) => rdr.IsDBNull(idx) ? null : rdr.GetDateTimeOffset(idx);
+        public static double? GetNullableDouble(this IDataReader rdr, int idx) => rdr.IsDBNull(idx) ? null : rdr.GetDouble(idx);
+        public static short? GetNullableShort(this IDataReader rdr, int idx) => rdr.IsDBNull(idx) ? null : rdr.GetInt16(idx);
 
         public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken cancellationToken = default)
         {
@@ -43,6 +53,15 @@ namespace ConsoleApp3
                 list.Add(item);
 
             return list;
+        }
+
+        public static async Task<Dictionary<K, T>> ToDictionaryAsync<K, T>(this IAsyncEnumerable<T> source, Func<T, K> keySelector, IEqualityComparer<K> comparer = default, CancellationToken cancellationToken = default)
+        {
+            var dict = new Dictionary<K, T>(comparer);
+            await foreach (var item in source.WithCancellation(cancellationToken).ConfigureAwait(false))
+                dict.Add(keySelector(item), item);
+
+            return dict;
         }
 
         public static Task AddRecords<T>(string connStr, Expression<Func<T, int>> keyAccessor, IReadOnlyList<T> recs)
