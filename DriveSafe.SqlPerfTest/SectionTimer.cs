@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
     public class SectionTimer  : IDisposable
     {

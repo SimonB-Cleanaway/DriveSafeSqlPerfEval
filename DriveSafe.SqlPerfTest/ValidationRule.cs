@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
     public abstract class ValidationRule : IValidationRule
     {

@@ -1,32 +1,28 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
-namespace ConsoleApp3.LocTest3
+namespace DriveSafe.SqlPerfTest
 {
-    public class LocTest3Cmd : ICmd
+    public class LocTest3
     {
         private readonly string _conStr;
 
-        public LocTest3Cmd(IConfiguration config)
+        public LocTest3(IConfiguration config)
         {
             _conStr = config["ConnectionString"] ?? throw new ArgumentNullException("No connection string defined");
         }
 
         record VehicleLoc(int VehicleId, string VehicleNo, DateTimeOffset Timestamp, double Latitude, double Longitude, short Speed, short Direction);
 
-        public async Task Run(IReadOnlyList<string> args)
+        public async Task Run(
+            double latitude,
+            double longitude,
+            int distance,
+            DateTimeOffset from,
+            DateTimeOffset to)
         {
-            double latitude = -37.8396f;
-            double longitude = 144.9772f;
-            int distance = 10000;
-            DateTimeOffset from = DateTimeOffset.Now.AddHours(-12);
-            DateTimeOffset to = DateTimeOffset.Now.AddHours(1);
-
             var sqlQry =
                 "select v.VehicleId, v.VehicleNo, vt.Timestamp, vt.Location.Lat as Latitude, vt.Location.Long as Longitude, vt.Speed, vt.Direction " +
                 "from VehicleTrace vt inner " +

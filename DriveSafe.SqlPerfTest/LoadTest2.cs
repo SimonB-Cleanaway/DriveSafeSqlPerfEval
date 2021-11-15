@@ -7,16 +7,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
-    public partial class LoadTest2Cmd : ICmd
+    public partial class LoadTest2
     {
         private readonly Random _rnd;
         private readonly ValidationRuleSim[] _validationRules;
         private readonly DataSimulator _dataSimulator;
         private readonly string _conStr;
 
-        public LoadTest2Cmd(IConfiguration config)
+        public LoadTest2(IConfiguration config)
         {
             _conStr = config["ConnectionString"];
 
@@ -35,12 +35,8 @@ namespace ConsoleApp3
         private IReadOnlyDictionary<string, Vehicle> _vehicles;
         private IReadOnlyDictionary<string, NotificationLevel> _levels;
 
-        public async Task Run(IReadOnlyList<string> args)
+        public async Task Run(int simCount, int threadCount)
         {
-            var vehicleCount = args.Count > 0 && int.TryParse(args[0], out var c) ? c : 2000;
-            var simCount = args.Count > 1 && int.TryParse(args[1], out var s) ? s : 100000;
-            var threadCount = args.Count > 2 && int.TryParse(args[2], out var t) ? t : 20;
-
             var bus = await LoadBUs();
             _vehicles = await LoadVehicles();
             _levels = await LoadLevels();  
@@ -71,9 +67,6 @@ namespace ConsoleApp3
                     var notifications = notificationTasks.Select(x => x.Result).Where(x => x != null);
 
                     await Update1(notifications);
-
-
-
                 }
             }
         }

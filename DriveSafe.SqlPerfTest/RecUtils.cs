@@ -7,8 +7,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
     public static class RecUtils
     {
@@ -16,7 +15,7 @@ namespace ConsoleApp3
             string connStr,
             string query,
             Func<SqlDataReader, T> map,
-            Action<SqlCommand> bind = null)
+            Action<SqlCommand>? bind = null)
         {
             await using var conn = new SqlConnection(connStr);
 
@@ -32,13 +31,13 @@ namespace ConsoleApp3
             SqlConnection conn,
             string query,
             Func<SqlDataReader, T> map,
-            Action<SqlCommand> bind = null)
+            Action<SqlCommand>? bind = null!)
         {
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = query;
             bind?.Invoke(cmd);
 
-            using var rdr = await cmd.ExecuteReaderAsync();
+            await using var rdr = await cmd.ExecuteReaderAsync();
             while (await rdr.ReadAsync()) yield return map(rdr);
         }
 
@@ -55,7 +54,7 @@ namespace ConsoleApp3
             return list;
         }
 
-        public static async Task<Dictionary<K, T>> ToDictionaryAsync<K, T>(this IAsyncEnumerable<T> source, Func<T, K> keySelector, IEqualityComparer<K> comparer = default, CancellationToken cancellationToken = default)
+        public static async Task<Dictionary<K, T>> ToDictionaryAsync<K, T>(this IAsyncEnumerable<T> source, Func<T, K> keySelector, IEqualityComparer<K>? comparer = default, CancellationToken cancellationToken = default)
         {
             var dict = new Dictionary<K, T>(comparer);
             await foreach (var item in source.WithCancellation(cancellationToken).ConfigureAwait(false))
@@ -68,7 +67,8 @@ namespace ConsoleApp3
         {
             var lambda = keyAccessor as LambdaExpression;
             var memberExpr = lambda.Body as MemberExpression;
-            var keyName = memberExpr.Member.Name;
+
+            var keyName = memberExpr?.Member.Name ?? throw new ArithmeticException("keyAccessor not a member expression");
 
             return AddRecords(connStr, typeof(T).Name, keyName, typeof(T).GetProperties().Select(x => x.Name).Where(x => x != keyName).ToArray(), recs);
         }
@@ -91,7 +91,7 @@ namespace ConsoleApp3
                 insCmd.CommandText = $"insert into {table}({string.Join(", ", propNames)}) values ({string.Join(", ", propNames.Select(c => "@" + c))})";
 
                 foreach (var colName in propNames)
-                    insCmd.Parameters.AddWithValue("@" + colName, paramAccessors[colName].Invoke(rec, null));
+                    insCmd.Parameters.AddWithValue("@" + colName, paramAccessors[colName]?.Invoke(rec, null));
 
                 await insCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 

@@ -8,25 +8,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
-
-    public class LoadTest1Cmd : ICmd
+    public class LoadTest1
     {
         private readonly string _conStr;
-        private readonly DataSimulator _dataSimulator = new DataSimulator();
+        private readonly DataSimulator _dataSimulator = new();
 
-        public LoadTest1Cmd(IConfiguration config)
+        public LoadTest1(IConfiguration config)
         {
-            _conStr = config["ConnectionString"];
+            _conStr = config["ConnectionString"] ?? throw new ArgumentNullException(nameof(config), "No Connection String Defined");
         }
 
-        public async Task Run(IReadOnlyList<string> args)
+        public async Task Run(int vehicleCount, int simCount, int threadCount)
         {
-            var vehicleCount = args.Count > 0 && int.TryParse(args[0], out var c) ? c : 2000;
-            var simCount = args.Count > 1 && int.TryParse(args[1], out var s) ? s : 250000;
-            var threadCount = args.Count > 2 && int.TryParse(args[2], out var t) ? t : 20;
-
             IReadOnlyList<BusinessUnit> bus;
             using (new SectionTimer("Loading Business Units"))
             {
@@ -75,7 +70,7 @@ namespace ConsoleApp3
             Debug.WriteLine($"Took {simTimer.ElapsedMilliseconds} ms for {simCount} updates or {1.0 * simTimer.ElapsedMilliseconds / simCount} ms per update");
         }
 
-        private Task ForEachAsync<T>(IEnumerable<T> source, int dop, Func<T, Task> body)
+        private static Task ForEachAsync<T>(IEnumerable<T> source, int dop, Func<T, Task> body)
         {
             return Task.WhenAll(
                 from partition in Partitioner.Create(source).GetPartitions(dop)

@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
     public class DataSimulator
     {
         private readonly Random _rnd = new();
 
-        public DataSimulator(Random rnd = null)
+        public DataSimulator(Random? rnd = null)
         {
             _rnd = rnd ?? new Random();
         }

@@ -92,6 +92,10 @@ create table VehicleTrace
 	Speed smallint null,
 );
 
+create spatial index VehicleTrace_SP1 on VehicleTrace(Location)
+create index VehicleTrace_IDX1 on VehicleTrace(Timestamp, VehicleId)
+
+
 create table VehicleNotification
 (
 	VehicleNotificationId int not null identity(1,1) primary key,

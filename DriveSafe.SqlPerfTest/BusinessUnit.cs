@@ -1,4 +1,4 @@
-﻿namespace ConsoleApp3
+﻿namespace DriveSafe.SqlPerfTest
 {
     public record BusinessUnit(int BusUnitId, string Code, string Name);
 }

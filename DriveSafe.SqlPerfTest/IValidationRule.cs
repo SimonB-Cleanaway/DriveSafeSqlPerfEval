@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace ConsoleApp3
+namespace DriveSafe.SqlPerfTest
 {
     public interface IValidationRule
     {

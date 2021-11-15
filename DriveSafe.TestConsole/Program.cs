@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 
-namespace ConsoleApp3
+namespace DriveSafe.TestConsole
 {
     public class Program
     {

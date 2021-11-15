@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using DriveSafe.SqlPerfTest;
 
-namespace ConsoleApp3
+namespace DriveSafe.TestConsole
 {
-    public class Test1Cmd : ICmd
+    public class QueryTest1Cmd : ICmd
     {
         public const string ConnStr = @"Server=localhost;Database=DriveSafe;Trusted_Connection=True;";
 

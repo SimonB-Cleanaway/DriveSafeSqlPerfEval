@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace ConsoleApp3
+namespace DriveSafe.TestConsole
 {
     public interface ICmd
     {

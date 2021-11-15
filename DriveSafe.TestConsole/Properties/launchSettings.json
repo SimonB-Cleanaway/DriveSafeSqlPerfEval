@@ -5,17 +5,17 @@
       "environmentVariables": {},
       "distributionName": ""
     },
-    "Test 1": {
-      "commandName": "Project",
-      "commandLineArgs": "Test3"
-    },
-    "Test 2": {
+    "Load Test 2": {
       "commandName": "Project",
       "commandLineArgs": "LoadTest2"
     },
-    "Test 3": {
+    "Loc Test 3": {
       "commandName": "Project",
       "commandLineArgs": "LocTest3"
+    },
+    "Load Test 1": {
+      "commandName": "Project",
+      "commandLineArgs": "LoadTest1"
     }
   }
 }
