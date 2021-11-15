@@ -26,7 +26,11 @@ declare @vl table(VehicleNo nvarchar(20), LastUpdated datetimeoffset, Lat float,
 insert into @vl(VehicleNo, LastUpdated, Lat, Lng, Speed, Dir) values
 	('123ABC', sysdatetimeoffset(), -37.84326999134972, 144.97838640368965, 55, 150),
 	('YXZ', sysdatetimeoffset(), -37.822662054015176, 144.87229967486553, 35, 45)
-insert into VehicleLocation(VehicleId, LastUpdated, Latitude, Longitude, Speed, Direction) select  v.VehicleId, vl.LastUpdated, vl.Lat, vl.Lng, vl.Speed, vl.Dir from @vl vl inner join Vehicle v on v.VehicleNo = vl.VehicleNo  where not exists (select 1 from VehicleLocation where VehicleId = v.VehicleId)
+
+insert into VehicleLocation(VehicleId, LastUpdated, Latitude, Longitude, Speed, Direction) 
+select  v.VehicleId, vl.LastUpdated, vl.Lat, vl.Lng, vl.Speed, vl.Dir 
+from @vl vl inner join Vehicle v on v.VehicleNo = vl.VehicleNo  
+where not exists (select 1 from VehicleLocation where VehicleId = v.VehicleId)
 
 go
 

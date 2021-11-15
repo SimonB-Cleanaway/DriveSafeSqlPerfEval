@@ -21,11 +21,10 @@ namespace ConsoleApp3
             _conStr = config["ConnectionString"];
         }
 
-
         public async Task Run(IReadOnlyList<string> args)
         {
             var vehicleCount = args.Count > 0 && int.TryParse(args[0], out var c) ? c : 2000;
-            var simCount = args.Count > 1 && int.TryParse(args[1], out var s) ? s : 100000;
+            var simCount = args.Count > 1 && int.TryParse(args[1], out var s) ? s : 250000;
             var threadCount = args.Count > 2 && int.TryParse(args[2], out var t) ? t : 20;
 
             IReadOnlyList<BusinessUnit> bus;
@@ -107,7 +106,7 @@ namespace ConsoleApp3
             return vehicles.Values.ToList();
         }
 
-         public async Task UpdateVehicleLocation(ValidationRequest vlu)
+        public async Task UpdateVehicleLocation(ValidationRequest vlu)
         {
             await using var conn = new SqlConnection(_conStr);
             await conn.OpenAsync();
@@ -138,9 +137,9 @@ namespace ConsoleApp3
 
             await using (var cmdTrace = conn.CreateCommand())
             {
-                cmdTrace.CommandText = 
-                    "insert into VehicleTrace(VehicleId, Timestamp, Latitude, Longitude, Direction, Speed) " +
-                    "select v.VehicleId, @timestamp, @latitude, @longitude, @direction, @speed " +
+                cmdTrace.CommandText =
+                    "insert into VehicleTrace(VehicleId, Timestamp, Location, Direction, Speed) " +
+                    "select v.VehicleId, @timestamp, geography::Point(@latitude, @longitude, 4326), @direction, @speed " +
                     "from Vehicle v " +
                     "where v.VehicleNo = @VehicleNo"; 
  

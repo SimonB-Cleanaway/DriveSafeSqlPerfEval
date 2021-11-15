@@ -78,16 +78,16 @@ create table VehicleLocation
 	Latitude float null,
 	Longitude float null,
 	Direction smallint null,
-	Speed smallint null
+	Speed smallint null,
 );
+
 
 create table VehicleTrace
 (
 	VehicleTrace int not null identity(1,1) primary key,
 	VehicleId int not null foreign key references Vehicle(VehicleId),
 	Timestamp datetimeoffset(2) not null,
-	Latitude float null,
-	Longitude float null,
+	Location Geography null,
 	Direction smallint null,
 	Speed smallint null,
 );

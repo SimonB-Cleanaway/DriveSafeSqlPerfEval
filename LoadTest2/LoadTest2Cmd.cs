@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
@@ -44,23 +46,35 @@ namespace ConsoleApp3
             _levels = await LoadLevels();  
             await LoadValidationRuleIds();
 
-            foreach (var vls in _dataSimulator.SimulateLocationUpdates(_vehicles.Values.ToList(), bus)
-                .Take(simCount)
-                .Chunk(100))
+            SectionTimer simTimer;
+            using (simTimer = new SectionTimer($"Simulating {simCount} updates using {threadCount} threads"))
             {
-                // Generate Notifications
-                var notificationTasks = vls
-                    .GroupBy(x => x.Registration)
-                    .Select(x => x.OrderByDescending(r => r.Timestamp).First())
-                    .SelectMany(vl => _validationRules.Select(vr => vr.Validate(vl)))
-                    .ToArray();
+                var ctr = 0;
 
-                await Task.WhenAll(notificationTasks);
+                foreach (var vls in _dataSimulator.SimulateLocationUpdates(_vehicles.Values.ToList(), bus)
+                    .Take(simCount)
+                    .Chunk(100))
+                {
+                    var ii = Interlocked.Add(ref ctr, vls.Length);
+                    if (ii % 100 == 0)
+                        Debug.WriteLine($"Processed {ii} ({(100 * ii / simCount):F0}%) ...");
 
-                var notifications = notificationTasks.Select(x => x.Result).Where(x => x != null);
+                    // Generate Notifications
+                    var notificationTasks = vls
+                        .GroupBy(x => x.Registration)
+                        .Select(x => x.OrderByDescending(r => r.Timestamp).First())
+                        .SelectMany(vl => _validationRules.Select(vr => vr.Validate(vl)))
+                        .ToArray();
 
-                await Update(notifications);
+                    await Task.WhenAll(notificationTasks);
 
+                    var notifications = notificationTasks.Select(x => x.Result).Where(x => x != null);
+
+                    await Update1(notifications);
+
+
+
+                }
             }
         }
 
@@ -118,7 +132,7 @@ namespace ConsoleApp3
             }
         }
 
-        private async Task Update(IEnumerable<IVehicleValidationResult> notifications)
+        private async Task Update1(IEnumerable<IVehicleValidationResult> notifications)
         {
             await using var conn = new SqlConnection(_conStr);
             await conn.OpenAsync();
@@ -137,11 +151,14 @@ namespace ConsoleApp3
                     x => x.Parameters.AddWithValue("@VehicleNo", vn.Key))
                     .ToListAsync();
 
-                foreach(var newNot in notifications.Where(x => !curNots.Any(n => n.ValidationRule.Code == x.RuleCode)))
+                var newNots = notifications.Where(x => !curNots.Any(n => n.ValidationRule.Code == x.RuleCode)).ToList();
+                var existingNots = notifications.Except(newNots);
+
+                foreach (var nvn in newNots)
                 {
-                    var vehicle = _vehicles[newNot.VehicleId];
-                    var vr = _validationRules.First(x => x.Code == newNot.RuleCode);
-                    var nl = _levels[newNot.Level.ToString()];
+                    var vehicle = _vehicles[nvn.VehicleId];
+                    var vr = _validationRules.First(x => x.Code == nvn.RuleCode);
+                    var nl = _levels[nvn.Level.ToString()];
 
                     await using var cmd = conn.CreateCommand();
 
@@ -151,12 +168,27 @@ namespace ConsoleApp3
                     cmd.Parameters.AddWithValue("@VehicleId", vehicle.VehicleId);
                     cmd.Parameters.AddWithValue("@ValidationRuleId", vr.Id);
                     cmd.Parameters.AddWithValue("@NotificationLevelId", nl.LevelId);
-                    cmd.Parameters.AddWithValue("@Message", newNot.Message);
+                    cmd.Parameters.AddWithValue("@Message", nvn.Message);
                     cmd.Parameters.AddWithValue("@CreateDate", DateTimeOffset.Now);
 
                     await cmd.ExecuteNonQueryAsync();
                 }
+
+                foreach(var evn in existingNots
+                    .Join(curNots, x => x.RuleCode, x => x.ValidationRule.Code, (n, r) => (n, r))
+                    .Where(x => x.r.Active && !x.r.ExpiryDate.HasValue || x.r.ExpiryDate < DateTimeOffset.Now))
+                {
+                    await using var cmd = conn.CreateCommand();
+
+                    cmd.CommandText =
+                        "update VehicleNotification set ExpiryDate=@ExpiryDate where VehicleNotificationId = @VehicleNotificationId";
+                    cmd.Parameters.AddWithValue("@VehicleNotificationId", evn.r.Id);
+                    cmd.Parameters.AddWithValue("@ExpiryDate", DateTimeOffset.Now);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
+
             await conn.CloseAsync();
         }
     }

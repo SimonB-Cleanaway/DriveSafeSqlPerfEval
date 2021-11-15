@@ -1,6 +1,15 @@
 {
   "profiles": {
-    "ConsoleApp3": {
+    "WSL": {
+      "commandName": "WSL2",
+      "environmentVariables": {},
+      "distributionName": ""
+    },
+    "Test 1": {
+      "commandName": "Project",
+      "commandLineArgs": "LoadTest1"
+    },
+    "Test 2": {
       "commandName": "Project",
       "commandLineArgs": "LoadTest2"
     }
