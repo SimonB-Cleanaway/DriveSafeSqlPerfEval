@@ -10,14 +10,15 @@ using Microsoft.Extensions.Configuration;
 
 namespace DriveSafe.SqlPerfTest
 {
-    public class LoadTest1
+    public class UpdateVehicleLocations
     {
         private readonly string _conStr;
         private readonly DataSimulator _dataSimulator = new();
 
-        public LoadTest1(IConfiguration config)
+        public UpdateVehicleLocations(IConfiguration config)
         {
-            _conStr = config["ConnectionString"] ?? throw new ArgumentNullException(nameof(config), "No Connection String Defined");
+            // _conStr = config["ConnectionString"] ?? throw new ArgumentNullException(nameof(config), "No Connection String Defined");
+            _conStr = "Server=localhost;Database=DriveSafe;Trusted_Connection=True;";
         }
 
         public async Task Run(int vehicleCount, int simCount, int threadCount)

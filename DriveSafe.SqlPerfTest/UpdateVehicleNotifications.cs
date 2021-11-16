@@ -9,16 +9,17 @@ using Microsoft.Extensions.Configuration;
 
 namespace DriveSafe.SqlPerfTest
 {
-    public partial class LoadTest2
+    public partial class UpdateVehicleNotifications
     {
         private readonly Random _rnd;
         private readonly ValidationRuleSim[] _validationRules;
         private readonly DataSimulator _dataSimulator;
         private readonly string _conStr;
 
-        public LoadTest2(IConfiguration config)
+        public UpdateVehicleNotifications(IConfiguration config)
         {
-            _conStr = config["ConnectionString"];
+            // _conStr = config["ConnectionString"] ?? throw new ArgumentNullException(nameof(config), "No Connection String Defined");
+            _conStr = "Server=localhost;Database=DriveSafe;Trusted_Connection=True;";
 
             _rnd = new Random();
 

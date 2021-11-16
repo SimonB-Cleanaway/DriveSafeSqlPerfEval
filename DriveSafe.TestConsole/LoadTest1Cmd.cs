@@ -6,7 +6,7 @@ using DriveSafe.SqlPerfTest;
 
 namespace DriveSafe.TestConsole
 {
-    public class LoadTest1Cmd : LoadTest1, ICmd
+    public class LoadTest1Cmd : UpdateVehicleLocations, ICmd
     {
         public LoadTest1Cmd(IConfiguration config)
             : base(config)

@@ -5,13 +5,14 @@ using Microsoft.Extensions.Configuration;
 
 namespace DriveSafe.SqlPerfTest
 {
-    public class LocTest3
+    public class QueryVehicleTrace
     {
         private readonly string _conStr;
 
-        public LocTest3(IConfiguration config)
+        public QueryVehicleTrace(IConfiguration config)
         {
-            _conStr = config["ConnectionString"] ?? throw new ArgumentNullException("No connection string defined");
+            // _conStr = config["ConnectionString"] ?? throw new ArgumentNullException(nameof(config), "No Connection String Defined");
+            _conStr = "Server=localhost;Database=DriveSafe;Trusted_Connection=True;";
         }
 
         record VehicleLoc(int VehicleId, string VehicleNo, DateTimeOffset Timestamp, double Latitude, double Longitude, short Speed, short Direction);

@@ -6,7 +6,7 @@ using DriveSafe.SqlPerfTest;
 
 namespace DriveSafe.TestConsole
 {
-    public class LocTest3Cmd : LocTest3, ICmd
+    public class LocTest3Cmd : QueryVehicleTrace, ICmd
     {
         public LocTest3Cmd(IConfiguration config)
             : base(config)
