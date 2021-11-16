@@ -23,14 +23,13 @@ namespace DriveSafe.SqlPerfTest
             (char)('0' + _rnd.Next(10)),
         });
 
-        public IEnumerable<ValidationRequest> SimulateLocationUpdates(IReadOnlyList<Vehicle> vehicles, IReadOnlyList<BusinessUnit> bus)
+        public IEnumerable<ValidationRequest> SimulateLocationUpdates(IReadOnlyList<Vehicle> vehicles)
         {
             while (true)
             {
                 var v = vehicles[_rnd.Next(vehicles.Count)];
-                var bu = bus.FirstOrDefault(x => x.BusUnitId == v.BusinessUnitId)?.Code;
 
-                yield return SimulateLocationUpdate(v, bu);
+                yield return SimulateLocationUpdate(v);
             }
         }
 
@@ -48,7 +47,7 @@ namespace DriveSafe.SqlPerfTest
         }
 
 
-        public ValidationRequest SimulateLocationUpdate(Vehicle v, string bu)
+        public ValidationRequest SimulateLocationUpdate(Vehicle v)
         {
             const float maxLat = -11.45397008875731f;
             const float maxLng = 153.58748984080026f;
@@ -57,7 +56,7 @@ namespace DriveSafe.SqlPerfTest
 
             return new ValidationRequest(
                 v.VehicleNo,
-                bu,
+                v.BusinessUnit.Code,
                 VehicleStatus(),
                 DateTimeOffset.Now.AddSeconds(_rnd.Next(60) - 120),
                 null,

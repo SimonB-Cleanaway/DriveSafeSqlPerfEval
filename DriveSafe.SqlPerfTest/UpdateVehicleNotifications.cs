@@ -25,33 +25,37 @@ namespace DriveSafe.SqlPerfTest
 
             _validationRules = new[]
             {
-                new ValidationRuleSim("A1", "Vehicle Status", NotLevel.Alert, _rnd, 0.12),
+                new ValidationRuleSim("A1", "Vehicle Status",       NotLevel.Alert, _rnd, 0.12),
                 new ValidationRuleSim("A3", "Invalid Registration", NotLevel.Alert, _rnd, 0.08),
-                new ValidationRuleSim("N1", "No Fleet Number", NotLevel.Info, _rnd, 0.20),
+                new ValidationRuleSim("N1", "No Fleet Number",      NotLevel.Info, _rnd, 0.20),
             };
 
             _dataSimulator = new DataSimulator(_rnd);
         }
 
-        private IReadOnlyDictionary<string, Vehicle> _vehicles;
-        private IReadOnlyDictionary<string, NotificationLevel> _levels;
+        private IReadOnlyDictionary<string, Vehicle>? _vehicles;
+        private IReadOnlyDictionary<string, NotificationLevel>? _levels;
 
         public async Task Run(int simCount, int threadCount)
         {
+            _levels = await LoadLevels();
             var bus = await LoadBUs();
-            _vehicles = await LoadVehicles();
-            _levels = await LoadLevels();  
+            _vehicles = await LoadVehicles(bus);
+         
             await LoadValidationRuleIds();
 
             SectionTimer simTimer;
             using (simTimer = new SectionTimer($"Simulating {simCount} updates using {threadCount} threads"))
             {
                 var ctr = 0;
+                var batch = 0;
 
-                foreach (var vls in _dataSimulator.SimulateLocationUpdates(_vehicles.Values.ToList(), bus)
+                foreach (var vls in _dataSimulator
+                    .SimulateLocationUpdates(_vehicles.Values.ToList())
                     .Take(simCount)
                     .Chunk(100))
                 {
+                    Interlocked.Increment(ref batch);
                     var ii = Interlocked.Add(ref ctr, vls.Length);
                     if (ii % 100 == 0)
                         Debug.WriteLine($"Processed {ii} ({(100 * ii / simCount):F0}%) ...");
@@ -65,14 +69,16 @@ namespace DriveSafe.SqlPerfTest
 
                     await Task.WhenAll(notificationTasks);
 
-                    var notifications = notificationTasks.Select(x => x.Result).Where(x => x != null);
+                    var notifications = notificationTasks.Select(x => x.Result).Where(x => x != null).ToList();
+
+                    Debug.WriteLine($"Batch {batch} has {notifications.Count} notifications.");
 
                     await Update1(notifications);
                 }
             }
         }
 
-        private async Task<IReadOnlyDictionary<string, Vehicle>> LoadVehicles()
+        private async Task<IReadOnlyDictionary<string, Vehicle>> LoadVehicles(IReadOnlyList<BusinessUnit> bus)
         {
             using (new SectionTimer("Loading Vehicles")) 
 
@@ -80,7 +86,11 @@ namespace DriveSafe.SqlPerfTest
                 .QueryRecords(
                     _conStr,
                     "select VehicleId, VehicleNo, BusinessUnitId from Vehicle",
-                    r => new Vehicle(r.GetInt32(0), r.GetString(1), r.GetInt32(2)))
+                    r =>
+                    {
+                        var bu = bus.First(x => x.BusUnitId == r.GetInt32(2));
+                        return new Vehicle(r.GetInt32(0), r.GetString(1)) { BusinessUnit = bu };
+                    })
                 .ToDictionaryAsync(v => v.VehicleNo, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -115,13 +125,13 @@ namespace DriveSafe.SqlPerfTest
         {
             using (new SectionTimer("Loading Validation Rules"))
             {
-                await foreach(var vr in RecUtils.QueryRecords(
+                await foreach(var (Id, Code) in RecUtils.QueryRecords(
                         _conStr,
                         "select ValidationRuleId, Code  from ValidationRule",
                         r => (Id: r.GetInt32(0), Code: r.GetString(1))))
                 {
-                    var r = _validationRules.First(x => string.Equals(x.Code, vr.Code, StringComparison.OrdinalIgnoreCase));
-                    r.Id = vr.Id;
+                    var r = _validationRules.First(x => string.Equals(x.Code, Code, StringComparison.OrdinalIgnoreCase));
+                    r.Id = Id;
                 }
             }
         }
@@ -140,7 +150,7 @@ namespace DriveSafe.SqlPerfTest
                     "where v.VehicleNo = @VehicleNo",
                     r => new VehicleNotification(r.GetInt32(0), r.GetInt32(1), r.GetInt32(2), r.GetInt32(3), r.GetString(4), r.GetDateTimeOffset(5), r.GetNullableDateTimeOffset(6), r.GetBoolean(7))
                     {
-                        ValidationRule = _validationRules.FirstOrDefault(x => x.Id == r.GetInt32(2))
+                        ValidationRule = _validationRules.First(x => x.Id == r.GetInt32(2))
                     },
                     x => x.Parameters.AddWithValue("@VehicleNo", vn.Key))
                     .ToListAsync();

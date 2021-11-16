@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using DriveSafe.SqlPerfTest;
+
 
 namespace DriveSafe.SqlTPerfApi
 {
@@ -19,7 +21,6 @@ namespace DriveSafe.SqlTPerfApi
         {
             _updateVehicleLocations = updateVehicleLocations ?? throw new ArgumentNullException(nameof(updateVehicleLocations));
         }
-
 
         [FunctionName("UpdateVehicleLocations")]
         public async Task<IActionResult> Run(
@@ -40,9 +41,14 @@ namespace DriveSafe.SqlTPerfApi
             var threadCountParam = (string)req.Query["threadCount"] ?? (data?.threadCount.ToString());
             var threadCount = int.TryParse(threadCountParam, out n) ? n : 20;
 
+            var sw = Stopwatch.StartNew();
             await _updateVehicleLocations.Run(vehicleCount, simCount, threadCount);
+            sw.Stop();
 
-            return new OkObjectResult("All Good");
+            var msg = $"Added {simCount} locations to {vehicleCount} vehicles using {threadCount} threads - Took {sw.ElapsedMilliseconds} ms or {1.0 * sw.ElapsedMilliseconds / simCount} ms per update";
+
+            log.LogInformation("UpdateVehicleLocations - " + msg);
+            return new OkObjectResult(msg);
         }
     }
 }

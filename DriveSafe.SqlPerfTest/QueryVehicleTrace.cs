@@ -17,7 +17,7 @@ namespace DriveSafe.SqlPerfTest
 
         record VehicleLoc(int VehicleId, string VehicleNo, DateTimeOffset Timestamp, double Latitude, double Longitude, short Speed, short Direction);
 
-        public async Task Run(
+        public async Task<int> Run(
             double latitude,
             double longitude,
             int distance,
@@ -32,6 +32,8 @@ namespace DriveSafe.SqlPerfTest
 
             using (new SectionTimer($"Loading Locations"))
             {
+                var ctr = 0;
+
                 await foreach(var vl in RecUtils.QueryRecords(_conStr, sqlQry,
                     r => new VehicleLoc(r.GetInt32(0), r.GetString(1), r.GetDateTimeOffset(2), r.GetDouble(3), r.GetDouble(4), r.GetInt16(5), r.GetInt16(6)),
                     c =>
@@ -44,7 +46,10 @@ namespace DriveSafe.SqlPerfTest
                     }))
                 {
                     Debug.WriteLine(vl);
+                    ctr++;
                 }
+
+                return ctr;
             }
         }
     }

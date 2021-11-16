@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -36,9 +37,14 @@ namespace DriveSafe.SqlTPerfApi
             var threadCountParam = (string)req.Query["threadCount"] ?? (data?.threadCount.ToString());
             var threadCount = int.TryParse(threadCountParam, out n) ? n : 20;
 
+            var sw = Stopwatch.StartNew();
             await _updateNotifications.Run(simCount, threadCount);
+            sw.Stop();
 
-            return new OkObjectResult("All Good");
+            var msg = $"Added {simCount} events using {threadCount} threads - Took {sw.ElapsedMilliseconds} ms";
+
+            log.LogInformation("UpdateVehicleNotifications - " + msg);
+            return new OkObjectResult(msg);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -41,16 +42,21 @@ namespace DriveSafe.SqlTPerfApi
 
             var backParam = (string)req.Query["back"] ?? (data?.back.ToString());
             var back = int.TryParse(backParam, out n) ? n : -24;
+            DateTimeOffset from = DateTimeOffset.Now.AddHours(back);
 
             var forwardParam = (string)req.Query["forward"] ?? (data?.forward.ToString());
             var forward = int.TryParse(forwardParam, out n) ? n : 24;
-
-            DateTimeOffset from = DateTimeOffset.Now.AddHours(back);
             DateTimeOffset to = DateTimeOffset.Now.AddHours(forward);
 
-            await _queryVehicleTrace.Run(latitude,longitude,distance, from, to);
+            var sw = Stopwatch .StartNew();
+            var ctr = await _queryVehicleTrace.Run(latitude,longitude,distance, from, to);
+            sw.Stop();
 
-            return new OkObjectResult("All Good");
+            var msg = $"Found {ctr} traces in {sw.ElapsedMilliseconds} ms";
+
+            log.LogInformation("UpdateVehicleLocations - " + msg);
+
+            return new OkObjectResult(msg);
         }
     }
 }

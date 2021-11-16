@@ -41,7 +41,11 @@ namespace DriveSafe.SqlPerfTest
                     .QueryRecords(
                         _conStr,
                         "select VehicleId, VehicleNo, BusinessUnitId from Vehicle",
-                        r => new Vehicle(r.GetInt32(0), r.GetString(1), r.GetInt32(2)))
+                        r =>
+                        {
+                            var bu = bus.First(x => x.BusUnitId == r.GetInt32(2));
+                            return new Vehicle(r.GetInt32(0), r.GetString(1)) {  BusinessUnit = bu };
+                        })
                     .ToListAsync();
             }
 
@@ -57,7 +61,7 @@ namespace DriveSafe.SqlPerfTest
                 var ctr = 0;
 
                 await ForEachAsync(
-                    _dataSimulator.SimulateLocationUpdates(vehicles, bus).Take(simCount),
+                    _dataSimulator.SimulateLocationUpdates(vehicles).Take(simCount),
                     threadCount, 
                     async vu =>
                     {
@@ -91,7 +95,7 @@ namespace DriveSafe.SqlPerfTest
 
             while (vehicles.Count < requiredVehicleCount)
             {
-                var v = new Vehicle(0, _dataSimulator.RandomRego(), bus[rnd.Next(bus.Count)].BusUnitId);
+                var v = new Vehicle(0, _dataSimulator.RandomRego()) { BusinessUnit = bus[rnd.Next(bus.Count)] };
 
                 if (!vehicles.ContainsKey(v.VehicleNo))
                     vehicles.Add(v.VehicleNo, v);
